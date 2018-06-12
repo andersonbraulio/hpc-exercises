@@ -41,11 +41,11 @@ int main(int argc, char **argv) {
     /* number of multiplications realized on each calculation */
     multiplications = cA;
 
-    /* result matrix on each process */
+    /* init matrices */
     mA = init_matrix(rA, cA);
     mB = init_matrix(rB, cB);
-    mC = init_zero_matrix(rA, cB);
 
+    /* used to call function mpi_wtime */
     MPI_Init(&argc, &argv);
     initial_time = MPI_Wtime();
 
@@ -59,11 +59,13 @@ int main(int argc, char **argv) {
         }
     }
 
+    /* get the execution time */
     final_time = MPI_Wtime();
     execution_time = final_time - initial_time;
 
     MPI_Finalize();
 
+    /* prints the processing result */
     printf("threads:%d\n", 1);
     printf("time:%lf\n", execution_time);
     printf("work:[%d,%d]x[%d,%d]\n", rA, cA, rB, cB);
