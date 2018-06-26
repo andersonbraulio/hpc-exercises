@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
     } while ((end - start) < execution_time);
 
     /* monte carlo calculation */
-    result = 4 * ((long double) in_circle / (float) points);
+    result = 4 * ((long double) in_circle / points);
 
     printf("threads: %d\n", 1);
     printf("time: %d\n", (int) execution_time);
