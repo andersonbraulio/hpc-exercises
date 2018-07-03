@@ -21,13 +21,8 @@
 #define x5 200000
 #define x6 300000
 
-/* global variables */
-int img_width;
-int img_height;
-long img_all_values;
-
 /* prototype */
-int * load_image(char *, long);
+int * load_image(char *, long, int *, int *, long *);
 long get_length_problem(char *);
 void abort_execution(char *);
 void close_file_and_abort_execution(FILE *, char *);
@@ -35,12 +30,12 @@ void close_file_and_abort_execution(FILE *, char *);
 int main(int argc, char **argv) {
     /* support variables */
     int n_processes, process_id, root_id = 0, n_threads = 1;
-    int count, r, g, b, luminosity, n_blocks, displacement = 0, len_problem;
+    int count, r, g, b, luminosity, n_blocks, displacement = 0, len_problem, img_width, img_height;
     int default_blocks_per_process, max_blocks_per_process, n_extra_blocks;
     int default_values_per_process, max_values_per_process;
     int *rgb_values, *share, *n_elements_per_process, *displs_to_each_process, histogram[256], hist_per_process[256];
+    long img_all_values;
     double start, end, execution_time, max_execution_time;
-
 
     /* identify the file and the size problem */
     if (argc < 2) abort_execution("error: file not informed");
@@ -64,8 +59,13 @@ int main(int argc, char **argv) {
 
     /* load image */
     if (process_id == root_id) {
-        rgb_values = load_image(argv[1], len_problem);
+        rgb_values = load_image(argv[1], len_problem, &img_width, &img_height, &img_all_values);
     }
+
+    /* share image data */
+    MPI_Bcast(&img_width, 1, MPI_INT, root_id, MPI_COMM_WORLD);
+    MPI_Bcast(&img_height, 1, MPI_INT, root_id, MPI_COMM_WORLD);
+    MPI_Bcast(&img_all_values, 1, MPI_LONG, root_id, MPI_COMM_WORLD);
 
     /* point to identify execution time */
     MPI_Barrier(MPI_COMM_WORLD);
@@ -139,9 +139,6 @@ int main(int argc, char **argv) {
         printf("threads:%d\n", n_processes * n_threads);
         printf("time:%lf\n", max_execution_time);
         printf("work:%dx\n", len_problem);
-
-        /*for (count = 0; count < 256; count++) */
-        /*printf("%3d: %d\n", count, histogram[count]);*/
     }
 
     MPI_Finalize();
@@ -153,13 +150,16 @@ int main(int argc, char **argv) {
  * load the image on vector with the RGB values
  * @param filename
  * @param len_problem
+ * @param image_width
+ * @param image_height
+ * @param image_all_values
  * @return
  */
-int * load_image(char *filename, long len_problem) {
+int * load_image(char *filename, long len_problem, int *image_width, int *image_height, long *image_all_values) {
     FILE *image_file;
     int count, count_2, new_position, h, w, r, g, b;
-    int *rgb_values, bytes_per_row;
-    long len_image, len_image_expanded;
+    int *rgb_values, bytes_per_row, img_width, img_height;
+    long img_all_values, len_image, len_image_expanded;
 
     png_structp img_structure;
     png_infop img_information;
@@ -234,6 +234,10 @@ int * load_image(char *filename, long len_problem) {
             count += 3;
         }
     }
+
+    *image_width = img_width;
+    *image_height = img_height;
+    *image_all_values = img_all_values;
 
     return rgb_values;
 }
